@@ -1,18 +1,22 @@
 pipeline {
   agent any
+
   tools {
     maven 'Maven 3.8.6'
   }
+
   environment {
     SONAR_TOKEN = credentials('sonar-token')
     DOCKER_CREDENTIALS = credentials('dockerhub-creds')
   }
+
   stages {
     stage('Checkout') {
       steps {
-        git 'https://github.com/priyaraghunath/java-cicd-gitops.git'
+        git branch: 'main', url: 'https://github.com/priyaraghunath/java-cicd-gitops.git'
       }
     }
+
     stage('Build') {
       steps {
         dir('app/myapp') {
@@ -20,6 +24,7 @@ pipeline {
         }
       }
     }
+
     stage('SonarQube Analysis') {
       steps {
         dir('app/myapp') {
@@ -29,6 +34,7 @@ pipeline {
         }
       }
     }
+
     stage('Docker Build and Push') {
       steps {
         dir('app/myapp') {
