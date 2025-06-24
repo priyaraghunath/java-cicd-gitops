@@ -1,9 +1,54 @@
 pipeline {
   agent any
+
+  tools {
+    maven 'Maven 3.8.6'
+  }
+
+  environment {
+    SONAR_TOKEN = credentials('sonar-token')
+    DOCKER_CREDENTIALS = credentials('dockerhub-creds')
+    GIT_USER = 'priyaraghunath'
+    GIT_EMAIL = 'priyankaraghunath98@gmail.com'
+    // GITOPS_REPO removed!
+  }
+
   stages {
-    stage('Test') {
+    stage('Checkout') {
       steps {
-        echo 'Minimal pipeline - should not error'
+        git branch: 'main', url: 'https://github.com/priyaraghunath/java-cicd-gitops.git'
+      }
+    }
+
+    stage('Build') {
+      steps {
+        dir('app/myapp') {
+          sh 'mvn clean install'
+        }
+      }
+    }
+
+    stage('SonarQube Analysis') {
+      steps {
+        dir('app/myapp') {
+          withSonarQubeEnv('MySonar') {
+            sh 'mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN'
+          }
+        }
+      }
+    }
+
+    stage('Docker Build and Push') {
+      steps {
+        dir('app/myapp') {
+          script {
+            def imageTag = "cupiemayo/myapp:${env.BUILD_NUMBER}"
+            sh "docker build -t ${imageTag} ."
+            sh "echo $DOCKER_CREDENTIALS_PSW | docker login -u $DOCKER_CREDENTIALS_USR --password-stdin"
+            sh "docker push ${imageTag}"
+            env.IMAGE_TAG = imageTag
+          }
+        }
       }
     }
   }
