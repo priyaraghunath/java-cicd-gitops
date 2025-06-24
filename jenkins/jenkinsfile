@@ -1,37 +1,71 @@
 pipeline {
   agent any
 
+  tools {
+    maven 'Maven 3.8.6'
+  }
+
   environment {
-    IMAGE_TAG = 'your-docker-image'       // your Docker image tag here
+    SONAR_TOKEN = credentials('sonar-token')
+    GIT_USER = 'priyaraghunath'
+    GIT_EMAIL = 'priyankaraghunath98@gmail.com'
+    AWS_REGION = 'us-east-2'
+    ECR_REGISTRY = '682033504000.dkr.ecr.us-east-2.amazonaws.com'
+    ECR_REPO = 'myapp'
+    IMAGE_TAG = "${ECR_REGISTRY}/${ECR_REPO}:${BUILD_NUMBER}"
+    HOME = "${env.WORKSPACE}" // Ensure HOME is writable for user-mode AWS CLI and kubectl installs
+    PATH = "${env.WORKSPACE}/.local/bin:${env.PATH}"
   }
 
   stages {
     stage('Checkout') {
       steps {
-        checkout scm
+        git branch: 'main', url: 'https://github.com/priyaraghunath/java-cicd-gitops.git'
       }
     }
 
-    stage('Build with Maven') {
+    stage('Build') {
       steps {
-        withMaven(maven: 'your-maven-tool') {
-          sh 'mvn clean package'
+        dir('app/myapp') {
+          sh 'mvn clean install'
         }
       }
     }
 
-    stage('Build and Push Docker Image') {
+    stage('SonarQube Analysis') {
       steps {
-        sh '''
-          # Build Docker image
-          docker build -t $IMAGE_TAG .
+        dir('app/myapp') {
+          withSonarQubeEnv('MySonar') {
+            sh 'mvn sonar:sonar -Dsonar.login=$SONAR_TOKEN'
+          }
+        }
+      }
+    }
 
-          # Login to AWS ECR (if using ECR)
-          aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-east-2.amazonaws.com
+    stage('Docker Build and Push') {
+      steps {
+        dir('app/myapp') {
+          withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+            sh '''
+              # Install AWS CLI if not present
+              if ! command -v aws &> /dev/null; then
+                echo "Installing AWS CLI (user mode)..."
+                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                unzip -oq awscliv2.zip
+                ./aws/install --update -i $HOME/.local/aws-cli -b $HOME/.local/bin
+              fi
+              export PATH="$HOME/.local/bin:$PATH"
+              aws --version
 
-          # Push image
-          docker push $IMAGE_TAG
-        '''
+              # Docker login to ECR
+              aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
+
+              # Build and push docker image
+              docker build -t $IMAGE_TAG .
+              docker push $IMAGE_TAG
+            '''
+          }
+        }
       }
     }
 
@@ -40,7 +74,7 @@ pipeline {
         dir('gitops') {
           withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
             sh '''
-              # Install kubectl if missing
+              # Install kubectl if not installed locally (user mode)
               if ! command -v kubectl > /dev/null 2>&1; then
                 echo "Installing kubectl..."
                 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
@@ -50,15 +84,8 @@ pipeline {
                 export PATH=$HOME/.local/bin:$PATH
               fi
 
-              echo "Using kubeconfig file at $KUBECONFIG"
-              ls -l "$KUBECONFIG"
-
               export KUBECONFIG=$KUBECONFIG
-
-              # Apply deployment
               kubectl apply -f deployment.yaml
-
-              # Wait for rollout
               kubectl rollout status deployment/myapp
             '''
           }
