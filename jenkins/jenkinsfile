@@ -13,7 +13,7 @@ pipeline {
     ECR_REGISTRY = '682033504000.dkr.ecr.us-east-2.amazonaws.com'
     ECR_REPO = 'myapp'
     IMAGE_TAG = "${ECR_REGISTRY}/${ECR_REPO}:${BUILD_NUMBER}"
-    HOME = "${env.WORKSPACE}" // Ensure HOME is writable for user-mode AWS CLI install
+    HOME = "${env.WORKSPACE}" // Ensure HOME is writable for user-mode AWS CLI install and kubectl
     PATH = "${env.WORKSPACE}/.local/bin:${env.PATH}"
   }
 
@@ -75,12 +75,14 @@ pipeline {
         dir('gitops') {
           withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
             sh '''
-              # Install kubectl if not installed
+              # Install kubectl locally if not installed
               if ! command -v kubectl > /dev/null 2>&1; then
                 echo "Installing kubectl..."
                 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
                 chmod +x kubectl
-                sudo mv kubectl /usr/local/bin/
+                mkdir -p $HOME/.local/bin
+                mv kubectl $HOME/.local/bin/
+                export PATH=$HOME/.local/bin:$PATH
               fi
 
               export KUBECONFIG=$KUBECONFIG
