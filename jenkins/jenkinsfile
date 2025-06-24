@@ -38,21 +38,21 @@ pipeline {
       }
     }
 
-    stage('Docker Build and Push') {
-      steps {
-        dir('app/myapp') {
-          script {
-            def imageTag = "682033504000.dkr.ecr.us-east-2.amazonaws.com/myapp:${env.BUILD_NUMBER}"
-            sh """
-              export PATH=/usr/local/bin:\$PATH
-              aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 682033504000.dkr.ecr.us-east-2.amazonaws.com
-              docker build -t ${imageTag} .
-              docker push ${imageTag}
-            """
-            env.IMAGE_TAG = imageTag
-          }
-        }
+   stage('Docker Build and Push') {
+  steps {
+    dir('app/myapp') {
+      script {
+        def imageTag = "682033504000.dkr.ecr.us-east-2.amazonaws.com/myapp:${env.BUILD_NUMBER}"
+        sh '''
+          export PATH=/usr/local/bin:$PATH
+          aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 682033504000.dkr.ecr.us-east-2.amazonaws.com
+          docker build -t ${imageTag} .
+          docker push ${imageTag}
+        '''
+        env.IMAGE_TAG = imageTag
       }
     }
+  }
+}
   }
 }
