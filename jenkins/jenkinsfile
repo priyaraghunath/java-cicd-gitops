@@ -52,7 +52,7 @@ pipeline {
     stage('Update GitOps Deployment') {
       steps {
         script {
-          def deploymentFile = 'deployment/deployment.yaml'
+          def deploymentFile = 'gitops/deployment.yaml'
           sh """
             git clone ${GITOPS_REPO} gitops-repo
             cd gitops-repo
