@@ -12,8 +12,8 @@ spec:
       labels:
         app: myapp
     spec:
-  containers:
-    - name: myapp
-      image: 682033504000.dkr.ecr.us-east-2.amazonaws.com/myapp:latest
-      ports:
-        - containerPort: 8080
+      containers:
+        - name: myapp
+          image: cupiemayo/myapp:latest  # <-- This will be replaced
+          ports:
+            - containerPort: 8080
