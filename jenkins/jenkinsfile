@@ -13,7 +13,7 @@ pipeline {
     ECR_REGISTRY = '682033504000.dkr.ecr.us-east-2.amazonaws.com'
     ECR_REPO = 'myapp'
     IMAGE_TAG = "${ECR_REGISTRY}/${ECR_REPO}:${BUILD_NUMBER}"
-    HOME = "${env.WORKSPACE}" // Ensure HOME is writable for user-mode AWS CLI install and kubectl
+    HOME = "${env.WORKSPACE}" // Ensure HOME is writable for user-mode AWS CLI and kubectl
     PATH = "${env.WORKSPACE}/.local/bin:${env.PATH}"
   }
 
