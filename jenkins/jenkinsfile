@@ -10,7 +10,7 @@ pipeline {
     DOCKER_CREDENTIALS = credentials('dockerhub-creds')
     GIT_USER = 'priyaraghunath'
     GIT_EMAIL = 'priyankaraghunath98@gmail.com'
-    // GITOPS_REPO is no longer needed
+    GITOPS_REPO = 'https://github.com/priyaraghunath/java-cicd-gitops.git'
   }
 
   stages {
