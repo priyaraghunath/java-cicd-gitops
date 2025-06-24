@@ -3,8 +3,6 @@ pipeline {
 
   tools {
     maven 'Maven 3.8.6'
-    // Optionally add awscli tool if configured in Jenkins global tools
-    // awscli 'aws-cli'
   }
 
   environment {
@@ -15,6 +13,8 @@ pipeline {
     ECR_REGISTRY = '682033504000.dkr.ecr.us-east-2.amazonaws.com'
     ECR_REPO = 'myapp'
     IMAGE_TAG = "${ECR_REGISTRY}/${ECR_REPO}:${BUILD_NUMBER}"
+    HOME = "${env.WORKSPACE}" // Ensure HOME is writable for user-mode AWS CLI install
+    PATH = "${env.WORKSPACE}/.local/bin:${env.PATH}"
   }
 
   stages {
@@ -45,28 +45,26 @@ pipeline {
     stage('Docker Build and Push') {
       steps {
         dir('app/myapp') {
-          script {
-            // Ensure AWS CLI is installed
+          withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
             sh '''
+              # Install AWS CLI in user mode if not present
               if ! command -v aws &> /dev/null; then
-                echo "Installing AWS CLI..."
+                echo "Installing AWS CLI (user mode)..."
                 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-                unzip awscliv2.zip
-                sudo ./aws/install
-                aws --version
+                unzip -q awscliv2.zip
+                ./aws/install -i $HOME/.local/aws-cli -b $HOME/.local/bin
               fi
-            '''
+              export PATH="$HOME/.local/bin:$PATH"
+              aws --version
 
-            // Login to ECR using Jenkins credentials
-            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
-              sh '''
-                aws ecr get-login-password --region $AWS_REGION | \
+              # Authenticate Docker to AWS ECR
+              aws ecr get-login-password --region $AWS_REGION | \
                 docker login --username AWS --password-stdin $ECR_REGISTRY
 
-                docker build -t $IMAGE_TAG .
-                docker push $IMAGE_TAG
-              '''
-            }
+              # Build and push Docker image
+              docker build -t $IMAGE_TAG .
+              docker push $IMAGE_TAG
+            '''
           }
         }
       }
