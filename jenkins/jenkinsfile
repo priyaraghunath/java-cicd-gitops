@@ -45,7 +45,7 @@ pipeline {
     stage('Docker Build and Push') {
       steps {
         dir('app/myapp') {
-          withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+          withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
             sh '''
               # Install AWS CLI in user mode if not present
               if ! command -v aws &> /dev/null; then
