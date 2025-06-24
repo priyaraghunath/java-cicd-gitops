@@ -69,5 +69,25 @@ pipeline {
         }
       }
     }
+
+    stage('Kubernetes Deploy') {
+      steps {
+        dir('gitops') {
+          withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
+            sh '''
+              # Optionally update the image tag in deployment.yaml (if using a fixed tag in YAML)
+              # sed -i "s|image: .*$ECR_REPO:[^ ]*|image: $IMAGE_TAG|g" deployment.yaml
+
+              # Apply the deployment
+              export KUBECONFIG=$KUBECONFIG
+              kubectl apply -f deployment.yaml
+
+              # Optionally, verify rollout status
+              kubectl rollout status deployment/myapp
+            '''
+          }
+        }
+      }
+    }
   }
 }
