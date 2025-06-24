@@ -43,7 +43,26 @@ pipeline {
             sh "docker build -t ${imageTag} ."
             sh "echo ${DOCKER_CREDENTIALS_PSW} | docker login -u ${DOCKER_CREDENTIALS_USR} --password-stdin"
             sh "docker push ${imageTag}"
+            env.IMAGE_TAG = imageTag
           }
+        }
+      }
+    }
+
+    stage('Update GitOps Deployment') {
+      steps {
+        script {
+          def deploymentFile = 'deployment/deployment.yaml'
+          sh """
+            git clone ${GITOPS_REPO} gitops-repo
+            cd gitops-repo
+            git config user.name "${GIT_USER}"
+            git config user.email "${GIT_EMAIL}"
+            sed -i 's|image: .*|image: ${IMAGE_TAG}|' ${deploymentFile}
+            git add ${deploymentFile}
+            git commit -m "Update image tag to ${IMAGE_TAG}"
+            git push https://${DOCKER_CREDENTIALS_USR}:${DOCKER_CREDENTIALS_PSW}@github.com/priyaraghunath/gitops-repo.git
+          """
         }
       }
     }
