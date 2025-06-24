@@ -7,9 +7,10 @@ pipeline {
 
   environment {
     SONAR_TOKEN = credentials('sonar-token')
-    AWS_REGION = 'us-east-2'
-    ECR_REPO = '682033504000.dkr.ecr.us-east-2.amazonaws.com/myapp'
-    DOCKER_CREDENTIALS = credentials('dockerhub-creds') // optional if pushing to Docker Hub too
+    DOCKER_CREDENTIALS = credentials('dockerhub-creds')
+    GIT_USER = 'priyaraghunath'
+    GIT_EMAIL = 'priyankaraghunath98@gmail.com'
+    PATH = "/usr/local/bin:${env.PATH}"  // Add aws CLI location to PATH
   }
 
   stages {
@@ -37,25 +38,19 @@ pipeline {
       }
     }
 
-    stage('Docker Build and Push to ECR') {
+    stage('Docker Build and Push') {
       steps {
         dir('app/myapp') {
           script {
-            def imageTag = "${env.ECR_REPO}:${env.BUILD_NUMBER}"
-            sh "docker build -t ${imageTag} ."
-            sh "aws ecr get-login-password --region ${env.AWS_REGION} | docker login --username AWS --password-stdin ${env.ECR_REPO.split('/')[0]}"
-            sh "docker push ${imageTag}"
+            def imageTag = "682033504000.dkr.ecr.us-east-2.amazonaws.com/myapp:${env.BUILD_NUMBER}"
+            sh """
+              export PATH=/usr/local/bin:\$PATH
+              aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 682033504000.dkr.ecr.us-east-2.amazonaws.com
+              docker build -t ${imageTag} .
+              docker push ${imageTag}
+            """
             env.IMAGE_TAG = imageTag
           }
-        }
-      }
-    }
-
-    stage('Deploy to EKS') {
-      steps {
-        script {
-          sh "kubectl set image deployment/myapp myapp=${env.IMAGE_TAG} --record"
-          sh "kubectl rollout status deployment/myapp"
         }
       }
     }
