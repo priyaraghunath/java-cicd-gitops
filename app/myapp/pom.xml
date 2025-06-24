@@ -51,8 +51,9 @@
             <phase>package</phase>
             <goals><goal>shade</goal></goals>
             <configuration>
-              <finalName>myapp-1.0-SNAPSHOT-shaded</finalName>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <!-- DON'T replace the original artifact -->
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>shaded</shadedClassifierName>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>com.example.MainApplication</mainClass>
@@ -63,25 +64,13 @@
         </executions>
       </plugin>
 
-      <!-- Surefire Plugin for tests -->
+      <!-- Surefire Plugin -->
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.22.1</version>
       </plugin>
 
-      <!-- Jar Plugin (optional) -->
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>3.0.2</version>
-        <configuration>
-          <archive>
-            <manifest>
-              <mainClass>com.example.MainApplication</mainClass>
-            </manifest>
-          </archive>
-        </configuration>
-      </plugin>
-
     </plugins>
   </build>
+
 </project>
