@@ -51,21 +51,23 @@ pipeline {
       }
     }
 
-  stage('Update GitOps Deployment') {
-  steps {
-    script {
-      sh "git clone ${GITOPS_REPO} gitops-repo"
+    stage('Update GitOps Deployment') {
+      steps {
+        script {
+          sh "git clone ${GITOPS_REPO} gitops-repo"
 
-      dir('gitops-repo') {
-        sh """
-          git config user.name "${GIT_USER}"
-          git config user.email "${GIT_EMAIL}"
-          sed -i 's|image: .*|image: ${IMAGE_TAG}|' gitops/deployment.yaml
-          git add gitops/deployment.yaml
-          git commit -m "Update image tag to ${IMAGE_TAG}"
-          git push https://${DOCKER_CREDENTIALS_USR}:${DOCKER_CREDENTIALS_PSW}@github.com/priyaraghunath/gitops-repo.git
-        """
+          dir('gitops-repo') {
+            sh """
+              git config user.name "${GIT_USER}"
+              git config user.email "${GIT_EMAIL}"
+              sed -i 's|image: .*|image: ${IMAGE_TAG}|' gitops/deployment.yaml
+              git add gitops/deployment.yaml
+              git commit -m "Update image tag to ${IMAGE_TAG}"
+              git push https://${DOCKER_CREDENTIALS_USR}:${DOCKER_CREDENTIALS_PSW}@github.com/priyaraghunath/gitops-repo.git
+            """
+          }
+        }
       }
     }
-  }
-}
+  } // <-- closes 'stages'
+}   // <-- closes 'pipeline'
