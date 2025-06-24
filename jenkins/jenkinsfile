@@ -10,6 +10,7 @@ pipeline {
     DOCKER_CREDENTIALS = credentials('dockerhub-creds')
     GIT_USER = 'priyaraghunath'
     GIT_EMAIL = 'priyankaraghunath98@gmail.com'
+    GITOPS_REPO = 'https://github.com/priyaraghunath/gitops-repo.git'
   }
 
   stages {
@@ -54,16 +55,18 @@ pipeline {
     stage('Update GitOps Deployment') {
       steps {
         script {
-          def deploymentFile = 'java-cicd-gitops/gitops/deployment.yaml' 
+          sh "git clone ${env.GITOPS_REPO} gitops-repo"
 
-          sh """
-            git config user.name "${GIT_USER}"
-            git config user.email "${GIT_EMAIL}"
-            sed -i 's|image: .*|image: ${IMAGE_TAG}|' ${deploymentFile}
-            git add ${deploymentFile}
-            git commit -m "Update image tag to ${IMAGE_TAG}" || echo "No changes to commit"
-            git push origin main
-          """
+          dir('gitops-repo') {
+            sh """
+              git config user.name "${env.GIT_USER}"
+              git config user.email "${env.GIT_EMAIL}"
+              sed -i 's|image: .*|image: ${env.IMAGE_TAG}|' gitops/deployment.yaml
+              git add gitops/deployment.yaml
+              git commit -m "Update image tag to ${env.IMAGE_TAG}"
+              git push https://${DOCKER_CREDENTIALS_USR}:${DOCKER_CREDENTIALS_PSW}@github.com/priyaraghunath/gitops-repo.git
+            """
+          }
         }
       }
     }
