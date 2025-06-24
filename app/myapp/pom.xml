@@ -41,7 +41,7 @@
         </configuration>
       </plugin>
 
-      <!-- Maven Shade Plugin to build a fat jar -->
+      <!-- Maven Shade Plugin -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -49,11 +49,10 @@
         <executions>
           <execution>
             <phase>package</phase>
-            <goals>
-              <goal>shade</goal>
-            </goals>
+            <goals><goal>shade</goal></goals>
             <configuration>
               <finalName>myapp-1.0-SNAPSHOT-shaded</finalName>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>com.example.MainApplication</mainClass>
@@ -64,13 +63,13 @@
         </executions>
       </plugin>
 
-      <!-- Surefire for tests -->
+      <!-- Surefire Plugin for tests -->
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.22.1</version>
       </plugin>
 
-      <!-- Jar plugin (optional if using Shade) -->
+      <!-- Jar Plugin (optional) -->
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
         <version>3.0.2</version>
