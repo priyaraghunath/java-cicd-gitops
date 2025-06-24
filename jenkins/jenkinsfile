@@ -7,6 +7,7 @@ pipeline {
 
   environment {
     SONAR_TOKEN = credentials('sonar-token')
+    DOCKER_CREDENTIALS = credentials('dockerhub-creds')
     GIT_USER = 'priyaraghunath'
     GIT_EMAIL = 'priyankaraghunath98@gmail.com'
     GITOPS_REPO = 'https://github.com/priyaraghunath/gitops-repo.git'
@@ -44,13 +45,8 @@ pipeline {
           script {
             def imageTag = "cupiemayo/myapp:${env.BUILD_NUMBER}"
             sh "docker build -t ${imageTag} ."
-
-            withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-              sh "echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin"
-              sh "docker push ${imageTag}"
-            }
-
-            // Store imageTag for use in GitOps stage
+            sh "echo ${DOCKER_CREDENTIALS_PSW} | docker login -u ${DOCKER_CREDENTIALS_USR} --password-stdin"
+            sh "docker push ${imageTag}"
             env.IMAGE_TAG = imageTag
           }
         }
@@ -60,24 +56,25 @@ pipeline {
     stage('Update GitOps Deployment') {
       steps {
         script {
-          // Clone the GitOps repo
-          sh "git clone ${env.GITOPS_REPO} gitops-repo"
+          def gitopsRepo = env.GITOPS_REPO
+          def gitUser = env.GIT_USER
+          def gitEmail = env.GIT_EMAIL
+          def imageTag = env.IMAGE_TAG
+
+          sh "git clone ${gitopsRepo} gitops-repo"
 
           dir('gitops-repo') {
-            // Configure Git identity
             sh """
-              git config user.name "${env.GIT_USER}"
-              git config user.email "${env.GIT_EMAIL}"
+              git config user.name "${gitUser}"
+              git config user.email "${gitEmail}"
             """
 
-            // Update image tag in deployment.yaml (adjust path if needed)
             sh """
-              sed -i 's|image: .*|image: ${env.IMAGE_TAG}|' gitops/deployment.yaml
+              sed -i 's|image: .*|image: ${imageTag}|' gitops/deployment.yaml
               git add gitops/deployment.yaml
-              git commit -m "Update image tag to ${env.IMAGE_TAG}"
+              git commit -m "Update image tag to ${imageTag}"
             """
 
-            // Push using DockerHub credentials
             withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
               sh 'git push https://${USERNAME}:${PASSWORD}@github.com/priyaraghunath/gitops-repo.git'
             }
