@@ -14,9 +14,10 @@ spec:
     spec:
       containers:
         - name: myapp
-          image: cupiemayo/myapp:latest  # <-- This will be replaced
+          image: 682033504000.dkr.ecr.us-east-2.amazonaws.com/myapp:latest
           ports:
             - containerPort: 8080
+---
 apiVersion: v1
 kind: Service
 metadata:
@@ -24,10 +25,9 @@ metadata:
   labels:
     app: myapp
 spec:
-  type: LoadBalancer  # or ClusterIP + Ingress
+  type: LoadBalancer
   selector:
     app: myapp
   ports:
     - port: 80
       targetPort: 8080
-
