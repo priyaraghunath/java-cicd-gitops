@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: myapp
-          image: "682033504000.dkr.ecr.us-east-2.amazonaws.com/myapp:40"
+          image: "682033504000.dkr.ecr.us-east-2.amazonaws.com/myapp:49"
           ports:
             - containerPort: 8080
 ---
