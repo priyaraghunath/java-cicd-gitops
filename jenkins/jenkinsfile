@@ -72,7 +72,10 @@ pipeline {
     stage('Kubernetes Deploy') {
   steps {
     dir('gitops') {
-      withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
+      withCredentials([
+        file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG'),
+        [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']
+      ]) {
         sh '''
           # Install kubectl if not installed locally (user mode)
           if ! command -v kubectl > /dev/null 2>&1; then
@@ -84,7 +87,19 @@ pipeline {
             export PATH=$HOME/.local/bin:$PATH
           fi
 
+          # Install AWS CLI if not present
+          if ! command -v aws > /dev/null 2>&1; then
+            echo "Installing AWS CLI (user mode)..."
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip -oq awscliv2.zip
+            ./aws/install --update -i $HOME/.local/aws-cli -b $HOME/.local/bin
+          fi
+          export PATH=$HOME/.local/bin:$PATH
+          aws --version
+
           export KUBECONFIG=$KUBECONFIG
+
+          # Run kubectl commands with AWS credentials environment
           kubectl apply -f deployment.yaml
           kubectl rollout status deployment/myapp
         '''
