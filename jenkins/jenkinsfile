@@ -7,7 +7,6 @@ pipeline {
 
   environment {
     SONAR_TOKEN = credentials('sonar-token')
-    DOCKER_CREDENTIALS = credentials('dockerhub-creds')
     GIT_USER = 'priyaraghunath'
     GIT_EMAIL = 'priyankaraghunath98@gmail.com'
     GITOPS_REPO = 'https://github.com/priyaraghunath/gitops-repo.git'
@@ -45,9 +44,13 @@ pipeline {
           script {
             def imageTag = "cupiemayo/myapp:${env.BUILD_NUMBER}"
             sh "docker build -t ${imageTag} ."
-            sh "echo ${DOCKER_CREDENTIALS_PSW} | docker login -u ${DOCKER_CREDENTIALS_USR} --password-stdin"
-            sh "docker push ${imageTag}"
-            // Export image tag as environment variable for next stage
+
+            withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+              sh "echo ${PASSWORD} | docker login -u ${USERNAME} --password-stdin"
+              sh "docker push ${imageTag}"
+            }
+
+            // Store imageTag for use in GitOps stage
             env.IMAGE_TAG = imageTag
           }
         }
@@ -67,14 +70,14 @@ pipeline {
               git config user.email "${env.GIT_EMAIL}"
             """
 
-            // Update the image tag in deployment.yaml
+            // Update image tag in deployment.yaml (adjust path if needed)
             sh """
               sed -i 's|image: .*|image: ${env.IMAGE_TAG}|' gitops/deployment.yaml
               git add gitops/deployment.yaml
               git commit -m "Update image tag to ${env.IMAGE_TAG}"
             """
 
-            // Use DockerHub credentials to push securely
+            // Push using DockerHub credentials
             withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
               sh 'git push https://${USERNAME}:${PASSWORD}@github.com/priyaraghunath/gitops-repo.git'
             }
