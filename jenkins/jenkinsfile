@@ -3,14 +3,18 @@ pipeline {
 
   tools {
     maven 'Maven 3.8.6'
+    // Optionally add awscli tool if configured in Jenkins global tools
+    // awscli 'aws-cli'
   }
 
   environment {
     SONAR_TOKEN = credentials('sonar-token')
-    DOCKER_CREDENTIALS = credentials('dockerhub-creds')
     GIT_USER = 'priyaraghunath'
     GIT_EMAIL = 'priyankaraghunath98@gmail.com'
-    PATH = "/usr/local/bin:${env.PATH}"  // Add aws CLI location to PATH
+    AWS_REGION = 'us-east-2'
+    ECR_REGISTRY = '682033504000.dkr.ecr.us-east-2.amazonaws.com'
+    ECR_REPO = 'myapp'
+    IMAGE_TAG = "${ECR_REGISTRY}/${ECR_REPO}:${BUILD_NUMBER}"
   }
 
   stages {
@@ -38,21 +42,34 @@ pipeline {
       }
     }
 
-   stage('Docker Build and Push') {
-  steps {
-    dir('app/myapp') {
-      script {
-        def imageTag = "682033504000.dkr.ecr.us-east-2.amazonaws.com/myapp:${env.BUILD_NUMBER}"
-        sh '''
-          export PATH=/usr/local/bin:$PATH
-          aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 682033504000.dkr.ecr.us-east-2.amazonaws.com
-          docker build -t ${imageTag} .
-          docker push ${imageTag}
-        '''
-        env.IMAGE_TAG = imageTag
+    stage('Docker Build and Push') {
+      steps {
+        dir('app/myapp') {
+          script {
+            // Ensure AWS CLI is installed
+            sh '''
+              if ! command -v aws &> /dev/null; then
+                echo "Installing AWS CLI..."
+                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                unzip awscliv2.zip
+                sudo ./aws/install
+                aws --version
+              fi
+            '''
+
+            // Login to ECR using Jenkins credentials
+            withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+              sh '''
+                aws ecr get-login-password --region $AWS_REGION | \
+                docker login --username AWS --password-stdin $ECR_REGISTRY
+
+                docker build -t $IMAGE_TAG .
+                docker push $IMAGE_TAG
+              '''
+            }
+          }
+        }
       }
     }
-  }
-}
   }
 }
