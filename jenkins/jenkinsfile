@@ -54,7 +54,7 @@ pipeline {
     stage('Update GitOps Deployment') {
       steps {
         script {
-          def deploymentFile = 'gitops/deployment.yaml'  // Adjust path if needed
+          def deploymentFile = 'java-cicd-gitops/gitops/deployment.yaml' 
 
           sh """
             git config user.name "${GIT_USER}"
