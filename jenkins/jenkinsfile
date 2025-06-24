@@ -70,27 +70,27 @@ pipeline {
     }
 
     stage('Kubernetes Deploy') {
-      steps {
-        dir('gitops') {
-          withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
-            sh '''
-              # Install kubectl if not installed locally (user mode)
-              if ! command -v kubectl > /dev/null 2>&1; then
-                echo "Installing kubectl..."
-                curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-                chmod +x kubectl
-                mkdir -p $HOME/.local/bin
-                mv kubectl $HOME/.local/bin/
-                export PATH=$HOME/.local/bin:$PATH
-              fi
+  steps {
+    dir('gitops') {
+      withCredentials([file(credentialsId: 'kubeconfig-credentials-id', variable: 'KUBECONFIG')]) {
+        sh '''
+          # Install kubectl if not installed locally (user mode)
+          if ! command -v kubectl > /dev/null 2>&1; then
+            echo "Installing kubectl..."
+            curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+            chmod +x kubectl
+            mkdir -p $HOME/.local/bin
+            mv kubectl $HOME/.local/bin/
+            export PATH=$HOME/.local/bin:$PATH
+          fi
 
-              export KUBECONFIG=$KUBECONFIG
-              kubectl apply -f deployment.yaml
-              kubectl rollout status deployment/myapp
-            '''
-          }
-        }
+          export KUBECONFIG=$KUBECONFIG
+          kubectl apply -f deployment.yaml
+          kubectl rollout status deployment/myapp
+        '''
       }
     }
   }
+}
+}
 }
