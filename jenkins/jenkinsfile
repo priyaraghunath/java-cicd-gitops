@@ -10,6 +10,7 @@ pipeline {
     DOCKER_CREDENTIALS = credentials('dockerhub-creds')
     GIT_USER = 'priyaraghunath'
     GIT_EMAIL = 'priyankaraghunath98@gmail.com'
+    GITOPS_REPO = 'https://github.com/priyaraghunath/gitops-repo.git'
   }
 
   stages {
@@ -69,5 +70,5 @@ pipeline {
         }
       }
     }
-  } // <-- closes 'stages'
-}   // <-- closes 'pipeline'
+  }
+}
